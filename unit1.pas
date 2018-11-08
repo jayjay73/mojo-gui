@@ -14,13 +14,18 @@ type
 
   TForm1 = class(TForm)
     Button1: TButton;
+    Label1: TLabel;
     Memo1: TMemo;
+    Memo2: TMemo;
     procedure CopyRequest(var request: string; var user, pass: string);
     procedure CopyResponse(response: string; cookies: TStrings);
 
     procedure Button1Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
 
   private
+    _request: string;
+    _response: string;
 
   public
 
@@ -37,6 +42,7 @@ implementation
 { TForm1 }
 
 //*******************************
+
 
 procedure TForm1.CopyRequest(var request: string; var user, pass: string);
 begin
@@ -57,6 +63,14 @@ end;
 //*******************************
 
 procedure TForm1.Button1Click(Sender: TObject);
+begin
+    if (assigned(myHTTPAsyncThread)) then
+       Memo2.Text:= myHTTPAsyncThread.ToString;
+
+    myHTTPAsyncThread.makeHTTPRequest;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
 begin
     THTTPAsyncThread.CreateOrRecycle(myHTTPAsyncThread);
     myHTTPAsyncThread.OnSyncRequestParams:= @CopyRequest;

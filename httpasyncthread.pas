@@ -88,7 +88,7 @@ begin
                 HttpClient.AddHeader('Content-Type', 'application/json');
                 HttpClient.AddHeader('Accept', 'application/json');
                 // FIXME: add X-Auth-Namespace header
-                HttpClient.AddHeader('X-Auth-Namespace', 'humanusername');
+                HttpClient.AddHeader('X-Auth-Namespace', 'jaegerj');
 
                 fAnswer := HttpClient.Get(fRequest);
                 fCookieJar:= TStringList.Create;

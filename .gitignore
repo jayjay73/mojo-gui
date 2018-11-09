@@ -10,3 +10,4 @@
 /backup
 /lib
 gcConfig.txt
+*.ini

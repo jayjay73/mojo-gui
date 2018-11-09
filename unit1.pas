@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls, httpasyncthread, HTTPDefs, DateUtils;
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls, httpasyncthread, HTTPDefs, DateUtils, IniFiles;
 
 
 type
@@ -24,8 +24,11 @@ type
     procedure FormCreate(Sender: TObject);
 
   private
+    _user: string;
+    _pass: string;
     _request: string;
     _response: string;
+    _authNamespace: string;
 
   public
 
@@ -34,6 +37,7 @@ type
 var
   Form1: TForm1;
   myHTTPAsyncThread: THTTPAsyncThread = nil;
+  INI: TINIFile;
 
 implementation
 
@@ -47,18 +51,17 @@ implementation
 procedure TForm1.CopyRequest(var request: string; var user, pass: string);
 begin
     // get request params from main thread
-    user:= 'tokenname';
-    pass:= 'tokenpass';
-    request:= 'https://myhost.tld:3443/project-name/API/v1.0/endpoint1';
+    user:= _user;
+    pass:= _pass;
+    request:= _request;
+
 end;
 
 procedure TForm1.CopyResponse(response: string; cookies: TStrings);
 begin
-    // pass data to main thread
+    // pass data from http thread back to main thread
     Memo1.Text:= response;
 end;
-
-
 
 //*******************************
 
@@ -72,6 +75,16 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+    INI := TINIFile.Create('mojo-test.ini');
+    try
+        _user:= INI.ReadString('MojoTest','USER','');
+        _pass:= INI.ReadString('MojoTest','PASS','');
+        _authNamespace:= INI.ReadString('MojoTest','AUTHNAMESPACE','');
+        _request:= INI.ReadString('MojoTest','REQUEST','');
+        Memo2.Text:= _request;
+    finally
+      INI.Free;
+    end;
     THTTPAsyncThread.CreateOrRecycle(myHTTPAsyncThread);
     myHTTPAsyncThread.OnSyncRequestParams:= @CopyRequest;
     myHTTPAsyncThread.OnSynchResponseData:= @CopyResponse;

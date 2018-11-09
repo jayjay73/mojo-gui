@@ -37,7 +37,7 @@ object Form1: TForm1
     AnchorSideRight.Side = asrBottom
     AnchorSideBottom.Side = asrBottom
     Left = 16
-    Height = 170
+    Height = 162
     Top = 358
     Width = 696
     Anchors = [akTop, akLeft, akRight, akBottom]
@@ -57,5 +57,17 @@ object Form1: TForm1
     BorderSpacing.Bottom = 6
     Caption = 'Debug:'
     ParentColor = False
+  end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Height = 25
+    Top = 520
+    Width = 732
+    Panels = <>
+  end
+  object Timer1: TTimer
+    Interval = 100
+    left = 672
+    top = 24
   end
 end

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ExtCtrls, ComCtrls, httpasyncthread, HTTPDefs, DateUtils, IniFiles;
+  ExtCtrls, ComCtrls, Menus, httpasyncthread, HTTPDefs, DateUtils, IniFiles;
 
 
 type
@@ -16,9 +16,14 @@ type
   TForm1 = class(TForm)
     Button1: TButton;
     Label1: TLabel;
+    MainMenu1: TMainMenu;
     Memo1: TMemo;
     Memo2: TMemo;
+    MenuItem1: TMenuItem;
+    PageControl1: TPageControl;
     StatusBar1: TStatusBar;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
     Timer1: TTimer;
     procedure CopyRequest(var request: string; var user: string; var pass: string; var authnamespace: string);
     procedure CopyResponse(response: httpResponse);

@@ -8,8 +8,14 @@ uses
     Classes, SysUtils, fphttpclient, HTTPDefs, DateUtils, syncobjs;
 
 type
-    TSyncRequestParamsEvent = procedure(var request: string; var user, pass: string) of object;
-    TSyncResponseDataEvent = procedure(response: string; cookies: TStrings) of object;
+    httpResponse = record
+      text: string;
+      status: integer;
+      cookies: TStrings;
+    end;
+
+    TSyncRequestParamsEvent = procedure(var request: string; var user: string; var pass: string; var authnamespace: string) of object;
+    TSyncResponseDataEvent = procedure(response: httpResponse) of object;
 
     THTTPAsyncThread = class(TThread)
         procedure makeHTTPRequest;
@@ -17,9 +23,11 @@ type
     private
         semaphore: TEventObject;
         fRequest: string;
-        fAnswer: string;
+        //fAnswer: string;
+        response: httpResponse;
         fUser, fPass: string;
-        fCookieJar: TStrings;
+        //fCookieJar: TStrings;
+        fAuthnamespace: string;
         getRequestFromCallback: boolean;
         workToDo: boolean;
         HTTPClient: TFPHttpClient;
@@ -33,7 +41,6 @@ type
     public
         constructor Create(CreateSuspended: boolean);
         class procedure CreateOrRecycle(var instanceVar: THTTPAsyncThread);
-        property CookieJar: TStrings read fCookieJar write fCookieJar;
         property OnSyncRequestParams: TSyncRequestParamsEvent read FSynchRequestParams write FSynchRequestParams;
         property OnSynchResponseData: TSyncResponseDataEvent read FSynchResponseData write FSynchResponseData;
     end;
@@ -67,7 +74,9 @@ begin
 end;
 
 procedure THTTPAsyncThread.Execute;
-//var
+var
+  ms: TStringStream;
+
 begin
     // get Request parameters
     while (not Terminated) do
@@ -81,18 +90,23 @@ begin
                 Synchronize(@DoSyncRequestParams);
             // make http call
             HttpClient := TFPHttpClient.Create(nil);
+            ms := TStringStream.Create('');
             try
+
                 HttpClient.AllowRedirect := True;
                 HttpClient.UserName := fUser;
                 HttpClient.Password := fPass;
                 HttpClient.AddHeader('Content-Type', 'application/json');
                 HttpClient.AddHeader('Accept', 'application/json');
                 // FIXME: add X-Auth-Namespace header
-                HttpClient.AddHeader('X-Auth-Namespace', 'jaegerj');
+                HttpClient.AddHeader('X-Auth-Namespace', fAuthnamespace);
 
-                fAnswer := HttpClient.Get(fRequest);
-                fCookieJar:= TStringList.Create;
-                fCookieJar.Text:= HttpClient.Cookies.Text;
+                HttpClient.HTTPMethod('GET', fRequest, ms, [200, 404, 500] );
+                response.status:= HttpClient.ResponseStatusCode;
+                response.text:= ms.DataString;
+                //fAnswer := HttpClient.Get(fRequest);
+                response.cookies:= TStringList.Create;
+                response.cookies.Text:= HttpClient.Cookies.Text;
             finally
                 HttpClient.Free;
             end;
@@ -108,14 +122,14 @@ end;
 procedure THTTPAsyncThread.DoSyncRequestParams;
 begin
     if Assigned(FSynchRequestParams) then
-        FSynchRequestParams(fRequest, fUser, fPass);
+        FSynchRequestParams(fRequest, fUser, fPass, fAuthnamespace);
     getRequestFromCallback := False;
 end;
 
 procedure THTTPAsyncThread.DoSyncResponseData;
 begin
     if Assigned(FSynchResponseData) then
-        FSynchResponseData(fAnswer, fCookieJar);
+        FSynchResponseData(response);
 end;
 
 procedure THTTPAsyncThread.makeHTTPRequest;

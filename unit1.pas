@@ -20,8 +20,8 @@ type
     Memo2: TMemo;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
-    procedure CopyRequest(var request: string; var user, pass: string);
-    procedure CopyResponse(response: string; cookies: TStrings);
+    procedure CopyRequest(var request: string; var user: string; var pass: string; var authnamespace: string);
+    procedure CopyResponse(response: httpResponse);
     procedure CheckResponse(Sender: TObject);
 
     procedure Button1Click(Sender: TObject);
@@ -34,6 +34,7 @@ type
     _response: string;
     _authNamespace: string;
     requestReceived: boolean;
+    requestOverdue: integer;
     timeAtLastRequest: TDateTime;
     waitFor: integer;
 
@@ -55,23 +56,31 @@ implementation
 //*******************************
 
 
-procedure TForm1.CopyRequest(var request: string; var user, pass: string);
+procedure TForm1.CopyRequest(var request: string; var user: string; var pass: string; var authnamespace: string);
 begin
     // get request params from main thread
     user:= _user;
     pass:= _pass;
     request:= _request;
+    authnamespace:= _authnamespace;
 
 end;
 
-procedure TForm1.CopyResponse(response: string; cookies: TStrings);
+procedure TForm1.CopyResponse(response: httpResponse);
 begin
     // pass data from http thread back to main thread
-    Memo1.Text:= response;
+    Memo1.Text:= response.text;
+    Memo2.Text:= IntToStr(response.status);
     requestReceived:= True;
+    CheckResponse(self);
 end;
 
 procedure TForm1.CheckResponse(Sender: TObject);
+var
+  secondsOut: integer;
+  numDots: string;
+  c: integer;
+
 begin
     if (requestReceived) then
     begin
@@ -79,9 +88,13 @@ begin
       Timer1.Enabled:= False;
     end else
     begin
-      if (MilliSecondsBetween(timeAtLastRequest, Now) > waitFor) then
+      requestOverdue:= MilliSecondsBetween(timeAtLastRequest, Now);
+      if (requestOverdue > waitFor) then
       begin
-        StatusBar1.SimpleText:= 'Waiting for server response...';
+        secondsOut:= Round(requestOverdue / 1000);
+        for c:=1 to secondsOut do
+          numDots:= numDots + '.';
+        StatusBar1.SimpleText:= 'Waiting for server response' + numDots;
         Timer1.Enabled:= True;
       end;
     end;

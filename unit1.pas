@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ExtCtrls, ComCtrls, Menus, httpasyncthread, HTTPDefs, DateUtils, IniFiles;
+  ExtCtrls, ComCtrls, Menus, httpasyncthread, HTTPDefs, DateUtils, IniFiles,
+  fpjson, jsonparser;
 
 
 type
@@ -15,7 +16,9 @@ type
 
   TForm1 = class(TForm)
     Button1: TButton;
+    Button2: TButton;
     Label1: TLabel;
+    ListBox1: TListBox;
     MainMenu1: TMainMenu;
     Memo1: TMemo;
     Memo2: TMemo;
@@ -25,18 +28,24 @@ type
     TabSheet1: TTabSheet;
     TabSheet2: TTabSheet;
     Timer1: TTimer;
+    procedure Button2Click(Sender: TObject);
     procedure CopyRequest(var request: string; var user: string; var pass: string; var authnamespace: string);
     procedure CopyResponse(response: httpResponse);
     procedure CheckResponse(Sender: TObject);
+
+    procedure CopyTokenRequest(var request: string; var user: string; var pass: string; var authnamespace: string);
+    procedure CopyTokenResponse(response: httpResponse);
 
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
 
   private
+    _username: string;
+    _adpass: string;
     _user: string;
     _pass: string;
     _request: string;
-    _response: string;
+    _baseurl: string;
     _authNamespace: string;
     requestReceived: boolean;
     requestOverdue: integer;
@@ -50,6 +59,7 @@ type
 var
   Form1: TForm1;
   myHTTPAsyncThread: THTTPAsyncThread = nil;
+  tokenHTTPAsyncThread: THTTPAsyncThread = nil;
   INI: TINIFile;
 
 implementation
@@ -60,13 +70,22 @@ implementation
 
 //*******************************
 
+procedure TForm1.Button2Click(Sender: TObject);
+begin
+    timeAtLastRequest:= Now;
+    requestReceived:= False;
+    waitFor:= 1000;
+    Timer1.Enabled:= True;
+    Timer1.OnTimer:= @CheckResponse;
+    tokenHTTPAsyncThread.makeHTTPRequest;
+end;
 
 procedure TForm1.CopyRequest(var request: string; var user: string; var pass: string; var authnamespace: string);
 begin
     // get request params from main thread
     user:= _user;
     pass:= _pass;
-    request:= _request;
+    request:= _baseurl + '/exasol-sandbox/API/v1.0/users';
     authnamespace:= _authnamespace;
 
 end;
@@ -105,6 +124,24 @@ begin
     end;
 end;
 
+procedure TForm1.CopyTokenRequest(var request: string; var user: string; var pass: string; var authnamespace: string);
+begin
+    // get request params from main thread
+    user:= _username;
+    pass:= _adpass;
+    authnamespace:= _authnamespace;
+    request:= _baseurl + '/tokens';
+end;
+
+procedure TForm1.CopyTokenResponse(response: httpResponse);
+begin
+    // pass data from http thread back to main thread
+    ListBox1.Items.Add(response.text);
+    Memo2.Text:= IntToStr(response.status);
+    requestReceived:= True;
+    CheckResponse(self);
+end;
+
 //*******************************
 
 procedure TForm1.Button1Click(Sender: TObject);
@@ -126,8 +163,10 @@ begin
         _user:= INI.ReadString('MojoTest','USER','');
         _pass:= INI.ReadString('MojoTest','PASS','');
         _authNamespace:= INI.ReadString('MojoTest','AUTHNAMESPACE','');
-        _request:= INI.ReadString('MojoTest','REQUEST','');
-        Memo2.Text:= _request;
+        _baseurl:= INI.ReadString('MojoTest','BASEURL','');
+        _username:= INI.ReadString('User','USERNAME','');
+        _adpass:= INI.ReadString('User','ADPASS','');
+        Memo2.Text:= _baseurl;
     finally
       INI.Free;
     end;
@@ -135,6 +174,11 @@ begin
     myHTTPAsyncThread.OnSyncRequestParams:= @CopyRequest;
     myHTTPAsyncThread.OnSynchResponseData:= @CopyResponse;
     Timer1.Enabled:= False;
+
+    THTTPAsyncThread.CreateOrRecycle(tokenHTTPAsyncThread);
+    tokenHTTPAsyncThread.OnSyncRequestParams:= @CopyTokenRequest;
+    tokenHTTPAsyncThread.OnSynchResponseData:= @CopyTokenResponse;
+
 end;
 
 

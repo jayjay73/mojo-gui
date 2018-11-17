@@ -101,7 +101,7 @@ begin
                 // FIXME: add X-Auth-Namespace header
                 HttpClient.AddHeader('X-Auth-Namespace', fAuthnamespace);
 
-                HttpClient.HTTPMethod('GET', fRequest, ms, [200, 404, 500] );
+                HttpClient.HTTPMethod('GET', fRequest, ms, [200, 401, 404, 500] );
                 response.status:= HttpClient.ResponseStatusCode;
                 response.text:= ms.DataString;
                 //fAnswer := HttpClient.Get(fRequest);

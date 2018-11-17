@@ -46,6 +46,7 @@ type
     _pass: string;
     _request: string;
     _baseurl: string;
+    _testendpoint: string;
     _authNamespace: string;
     requestReceived: boolean;
     requestOverdue: integer;
@@ -74,6 +75,7 @@ procedure TForm1.Button2Click(Sender: TObject);
 begin
     timeAtLastRequest:= Now;
     requestReceived:= False;
+    StatusBar1.SimpleText:= '';
     waitFor:= 1000;
     Timer1.Enabled:= True;
     Timer1.OnTimer:= @CheckResponse;
@@ -85,7 +87,8 @@ begin
     // get request params from main thread
     user:= _user;
     pass:= _pass;
-    request:= _baseurl + '/exasol-sandbox/API/v1.0/users';
+    //request:= _baseurl + '/exasol-sandbox/API/v1.0/users';
+    request:= _baseurl + '/' + _testendpoint;
     authnamespace:= _authnamespace;
 
 end;
@@ -96,6 +99,7 @@ begin
     Memo1.Text:= response.text;
     Memo2.Text:= IntToStr(response.status);
     requestReceived:= True;
+    StatusBar1.SimpleText:= '';
     CheckResponse(self);
 end;
 
@@ -108,7 +112,7 @@ var
 begin
     if (requestReceived) then
     begin
-      StatusBar1.SimpleText:= '';
+      //StatusBar1.SimpleText:= '';
       Timer1.Enabled:= False;
     end else
     begin
@@ -136,7 +140,13 @@ end;
 procedure TForm1.CopyTokenResponse(response: httpResponse);
 begin
     // pass data from http thread back to main thread
-    ListBox1.Items.Add(response.text);
+    if (response.status = 200) then
+    begin
+       ListBox1.Items.Add(response.text);
+       StatusBar1.SimpleText:= '';
+    end
+    else
+       StatusBar1.SimpleText:= response.text;
     Memo2.Text:= IntToStr(response.status);
     requestReceived:= True;
     CheckResponse(self);
@@ -150,6 +160,7 @@ begin
        Memo2.Text:= myHTTPAsyncThread.ToString;
     timeAtLastRequest:= Now;
     requestReceived:= False;
+    StatusBar1.SimpleText:= '';
     waitFor:= 1000;
     Timer1.Enabled:= True;
     Timer1.OnTimer:= @CheckResponse;
@@ -164,6 +175,7 @@ begin
         _pass:= INI.ReadString('MojoTest','PASS','');
         _authNamespace:= INI.ReadString('MojoTest','AUTHNAMESPACE','');
         _baseurl:= INI.ReadString('MojoTest','BASEURL','');
+        _testendpoint:= INI.ReadString('MojoTest','TESTENDPOINT','');
         _username:= INI.ReadString('User','USERNAME','');
         _adpass:= INI.ReadString('User','ADPASS','');
         Memo2.Text:= _baseurl;
